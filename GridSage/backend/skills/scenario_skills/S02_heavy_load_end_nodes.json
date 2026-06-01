@@ -1,0 +1,41 @@
+{
+  "skill_id": "S02_HEAVY_LOAD_END_NODES",
+  "version": "1.0.0",
+  "name_cn": "末端节点重负荷场景",
+  "name_en": "Heavy Load at Feeder End Nodes",
+  "category": "load_stress",
+  "description_cn": "模拟配电网末端节点大负荷导致的低电压、线路潮流增大和网损增加问题。",
+  "description_en": "Simulates voltage and loss stress caused by heavy load at feeder end nodes.",
+  "intent_triggers": ["末端重负荷", "末端节点", "重负荷", "负荷很重", "电压低", "低电压", "线路过载", "heavy load", "end node"],
+  "typical_user_requests": ["末端节点负荷很重", "模拟末端低电压", "在末端节点增加负荷"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.5, "min": 1.2, "max": 1.8},
+    "global_pv_multiplier": {"default": 1.0, "min": 0.8, "max": 1.2},
+    "global_ev_multiplier": {"default": 0.0, "min": 0.0, "max": 0.0, "description": "默认不引入 EV 充电需求，除非用户明确要求。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["末端节点", "低电压节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_load_kw": {"default": 300, "min": 100, "max": 1500},
+      "add_ev_spots": {"default": 20, "min": 0, "max": 50}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["PPO", "SAC", "TD3"],
+    "default_algorithm": "PPO",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_support", "peak_shaving", "line_loss_penalty", "line_overload_penalty"]
+  },
+  "recommended_metrics": ["最低节点电压", "电压合格率", "最大线路功率流", "精确总网损", "总成本", "EV充电满足率"],
+  "validation_rules": [
+    {"rule_id": "LOAD_SHOULD_BE_HIGH", "level": "warning", "condition": "global_load_multiplier <= 1.0 and total_add_load_kw <= 0", "message_cn": "末端重负荷场景中既没有提高全局负荷，也没有增加节点负荷，场景特征可能不明显。"},
+    {"rule_id": "HEAVY_LOAD_SEMANTIC_CONFLICT", "level": "reject", "condition": "global_load_multiplier < 0.8 and total_add_load_kw <= 0", "message_cn": "末端重负荷场景中将全局负荷降至较低水平且没有新增节点负荷，配置与重负荷场景语义冲突。"},
+    {"rule_id": "LOAD_SHOULD_TARGET_END_NODES", "level": "warning", "condition": "has_known_end_nodes and total_add_load_kw > 0 and end_node_add_load_kw <= 0", "message_cn": "末端重负荷场景中的新增负荷未作用于推荐末端节点，可能削弱末端低电压压力特征。"},
+    {"rule_id": "NODE_LOAD_TOO_HIGH", "level": "warning", "condition": "max_add_load_kw > 1500", "message_cn": "单节点新增负荷超过1500 kW，建议确认是否符合工程设定。"},
+    {"rule_id": "NODE_LOAD_HARD_LIMIT", "level": "reject", "condition": "max_add_load_kw > 2000", "message_cn": "单节点新增负荷超过2000 kW，已超出当前安全边界。"},
+    {"rule_id": "HEAVY_LOAD_NEEDS_VOLTAGE_SUPPORT", "level": "warning", "condition": "effective_load_multiplier >= 2.0 and use_ess == false and use_sop == false", "message_cn": "重负荷压力较高且同时关闭储能和SOP，缺少电压支撑资源，运行风险较高。"},
+    {"rule_id": "EV_HEAVY_LOAD_STACKING_RISK", "level": "warning", "condition": "effective_load_multiplier >= 1.8 and effective_ev_multiplier >= 3.0 and end_node_add_load_kw >= 500", "message_cn": "EV集中充电与末端重负荷叠加，可能进一步增加低电压和线路潮流风险。"}
+  ],
+  "result_interpretation_focus": ["重点关注末端最低电压是否改善。", "若网损上升，说明重负荷造成线路潮流压力。", "若最大线路功率流下降，说明调控策略缓解了局部潮流压力。"]
+}

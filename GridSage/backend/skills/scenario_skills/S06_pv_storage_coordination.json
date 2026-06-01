@@ -1,0 +1,49 @@
+{
+  "skill_id": "S06_PV_STORAGE_COORDINATION",
+  "version": "1.0.0",
+  "name_cn": "高比例光伏与分布式储能协同消纳场景",
+  "name_en": "High PV with Distributed Energy Storage Coordination Scenario",
+  "category": "storage_coordination",
+  "description_cn": "针对高比例分布式光伏并网引起的日间反向潮流与过电压问题，通过协同调度多节点分布式储能系统（BESS），在光伏高发期充电消纳、负荷高峰期放电支撑，实现本地源荷协同平衡与电压治理。",
+  "description_en": "Simulates coordinated scheduling of multi-node BESS to absorb high PV generation and support grid during peak load.",
+  "intent_triggers": ["光储协同", "光储消纳", "分布式储能协同", "分布式光储", "储能消纳光伏", "源荷协同", "PV storage coordination", "BESS PV absorption"],
+  "typical_user_requests": ["模拟高比例光储协同消纳", "添加多节点分布式储能", "高光伏接入下储能充电消纳", "评估光储联合控制效果"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 2.0, "min": 1.4, "max": 2.8, "description": "全局分布式光伏出力倍率。"},
+    "global_load_multiplier": {"default": 0.85, "min": 0.6, "max": 1.2, "description": "基础负荷倍率。"},
+    "use_ess": {"default": true, "description": "是否开启分布式储能系统，该场景强制开启。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["光伏节点", "末端电压敏感节点", "储能并网节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b22", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_ess_kwh": {"default": 300, "min": 50, "max": 1500, "description": "新增分布式储能额定容量。"}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["pv_curtailment_penalty", "voltage_violation_penalty", "line_loss_penalty", "ess_soc_balance"]
+  },
+  "recommended_metrics": ["光伏风电消纳率", "弃光弃风量", "最低与最高电压", "电压合格率", "精确总网损", "储能利用效率"],
+  "validation_rules": [
+    {
+      "rule_id": "ESS_MUST_BE_ENABLED",
+      "level": "reject",
+      "condition": "use_ess == false",
+      "message_cn": "光储协同消纳场景下必须开启储能系统，当前配置与场景语义冲突。"
+    },
+    {
+      "rule_id": "PV_CAPACITY_INSUFFICIENT",
+      "level": "warning",
+      "condition": "global_pv_multiplier < 1.3 and total_add_pv_kw <= 0",
+      "message_cn": "当前为高比例光伏消纳场景，但光伏倍率设置偏低，可能无法充分展现光储消纳和电压越限的调控效果。"
+    }
+  ],
+  "result_interpretation_focus": [
+    "关注光伏高发时段（10点至14点）的储能充放电状态，评估其削峰消纳作用是否有效。",
+    "分析末端电压越限点的电压改善状况，确认光储协同对过电压的抑制效能。",
+    "统计弃光率与系统净负荷波动率，判断调控策略是否实现了本地源荷平衡。"
+  ]
+}

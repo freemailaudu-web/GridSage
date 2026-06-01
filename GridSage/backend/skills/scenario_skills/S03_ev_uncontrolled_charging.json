@@ -1,0 +1,55 @@
+{
+  "skill_id": "S03_EV_UNCONTROLLED_CHARGING",
+  "version": "1.0.0",
+  "name_cn": "电动汽车规模化无序充电场景",
+  "name_en": "Large-scale Uncontrolled EV Charging Scenario",
+  "category": "ev_integration",
+  "description_cn": "模拟商业区或居民区节点在用电高峰期，由于电动汽车规模化无序充电引发的局部负荷急剧叠加、变压器过载、线路重过载以及末端节点电压跌落问题。",
+  "description_en": "Simulates voltage drops and transformer overloading caused by large-scale uncontrolled EV charging during peak demand.",
+  "intent_triggers": ["电动汽车无序充电", "电动汽车集中充电", "EV规模化充电", "EV无序充电", "EV充电冲击", "EV充电负荷叠加", "uncontrolled EV charging", "EV peak charging"],
+  "typical_user_requests": ["模拟电动汽车集中充电", "增加电动汽车充电负荷", "电动汽车无序充电场景", "评估大规模EV并网影响"],
+  "recommended_parameters": {
+    "global_ev_multiplier": {"default": 1.5, "min": 1.0, "max": 3.0, "description": "全局电动汽车充电需求倍率。"},
+    "global_load_multiplier": {"default": 1.0, "min": 0.8, "max": 1.3, "description": "基础负荷倍率。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["商业区节点", "居民区节点", "末端节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b12", "b24", "b30"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_ev_spots": {"default": 30, "min": 5, "max": 100, "description": "新增充电桩数量。"},
+      "add_load_kw": {"default": 200, "min": 50, "max": 1000, "description": "新增基础负荷量。"}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["PPO", "SAC", "DQN"],
+    "default_algorithm": "PPO",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_violation_penalty", "peak_shaving", "line_loss_penalty", "ev_soc_satisfaction"]
+  },
+  "recommended_metrics": ["最低节点电压", "电压合格率", "最大变压器负载率", "EV充电满足率", "总网损", "总运行成本"],
+  "validation_rules": [
+    {
+      "rule_id": "EV_CHARGING_MUST_BE_ENABLED",
+      "level": "reject",
+      "condition": "use_ev == false",
+      "message_cn": "电动汽车无序充电场景下必须开启EV充电模拟，当前配置与场景语义冲突。"
+    },
+    {
+      "rule_id": "EV_MULTIPLIER_SHOULD_BE_HIGH",
+      "level": "warning",
+      "condition": "global_ev_multiplier < 1.1 and total_add_ev_spots <= 0",
+      "message_cn": "当前配置为电动汽车无序充电场景，但充电需求倍率与新增充电桩数均较低，可能无法体现场景特征。"
+    },
+    {
+      "rule_id": "TRANSFORMER_OVERLOAD_RISK",
+      "level": "warning",
+      "condition": "global_ev_multiplier >= 2.0 and global_load_multiplier >= 1.2",
+      "message_cn": "高EV充电需求与高基础负荷叠加，可能引发变压器严重过载，请评估系统容量安全。"
+    }
+  ],
+  "result_interpretation_focus": [
+    "分析低电压节点分布，评估EV充电对末端电压的影响。",
+    "关注EV充电满足率指标，判断调控策略是否过度牺牲了用户充电利益。",
+    "观察变压器与主要输电支路负载率，确认是否存在重过载瓶颈。"
+  ]
+}

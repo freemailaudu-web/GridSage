@@ -1,0 +1,48 @@
+{
+  "skill_id": "S07_DYNAMIC_LOAD_VOLTAGE_SUPPORT",
+  "version": "1.0.0",
+  "name_cn": "末端动态负荷冲击与主动无功支撑场景",
+  "name_en": "Dynamic Terminal Load with Active Reactive Power Support Scenario",
+  "category": "voltage_quality",
+  "description_cn": "模拟馈线末端大功率冲击性动态负荷引发的瞬时电压骤降与电能质量劣化问题，协同调度无功补偿设备（如SVG、SOP或储能逆变器）的无功输出提供快速电压支撑。",
+  "description_en": "Simulates transient voltage sag caused by dynamic peak loads, and schedules reactive power support from SVG or SOP.",
+  "intent_triggers": ["动态负荷", "冲击负荷", "无功支撑", "无功补偿", "电压骤降", "电能质量", "SVG无功", "dynamic load sag", "reactive power support"],
+  "typical_user_requests": ["模拟末端冲击性负荷", "冲击负荷下SVG无功支撑", "动态负荷引起电压跌落调控", "无功动态电压控制场景"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.1, "min": 0.8, "max": 1.5, "description": "基础负荷倍率。"},
+    "dynamic_load_peak_kw": {"default": 600.0, "min": 200.0, "max": 1500.0, "description": "动态负荷峰值功率量。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["末端节点", "重负荷节点", "无功调节节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_svg_kvar": {"default": 300, "min": 50, "max": 1000, "description": "新增静止无功发生器(SVG)无功调节容量。"}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["TD3", "SAC", "PPO"],
+    "default_algorithm": "TD3",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_sag_penalty", "reactive_loss_penalty", "line_loss_penalty", "voltage_deviation_penalty"]
+  },
+  "recommended_metrics": ["最低暂态电压", "电压跌落幅值", "电压合格率", "精确总网损", "SVG动态响应速度"],
+  "validation_rules": [
+    {
+      "rule_id": "DYNAMIC_LOAD_PEAK_LIMIT",
+      "level": "reject",
+      "condition": "dynamic_load_peak_kw > 2000",
+      "message_cn": "设置的动态冲击负荷峰值过大（超出2000 kW），已偏离正常安全范围，请合理设置。"
+    },
+    {
+      "rule_id": "REACTIVE_SUPPORT_MISSING",
+      "level": "warning",
+      "condition": "use_svg == false and use_sop == false and use_ess == false",
+      "message_cn": "当前为动态负荷冲击支撑场景，但关闭了所有快速无功响应设备（SVG/SOP/储能），系统存在严重的暂态越限风险。"
+    }
+  ],
+  "result_interpretation_focus": [
+    "评估在动态负荷冲击期间，无功补偿设备是否能够做到毫秒级/步长级快速无功吞吐支撑。",
+    "对比分析无功支撑动作前后，馈线末端最低电压水平的抬升值。",
+    "计算因动态无功流动带来的额外网损损耗，评估无功补偿的副反应。"
+  ]
+}

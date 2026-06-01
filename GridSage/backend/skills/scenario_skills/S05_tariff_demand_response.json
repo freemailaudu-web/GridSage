@@ -1,0 +1,48 @@
+{
+  "skill_id": "S05_TARIFF_DEMAND_RESPONSE",
+  "version": "1.0.0",
+  "name_cn": "分时电价驱动的需求侧响应场景",
+  "name_en": "TOU Tariff-driven Demand Side Response Scenario",
+  "category": "demand_response",
+  "description_cn": "针对峰谷电价差较大的配电网，通过分时电价信号引导用户侧柔性负荷进行主动削峰填谷，平滑净负荷曲线，实现配电网降损与运行经济性优化。",
+  "description_en": "Simulates responsive flexible loads shifting demand according to Time-of-Use tariff to achieve peak shaving and optimization.",
+  "intent_triggers": ["分时电价", "需求侧响应", "削峰填谷", "需求响应", "柔性负荷", "负荷转移", "TOU tariff", "demand side response", "load shifting"],
+  "typical_user_requests": ["模拟分时电价需求响应", "添加柔性负荷削峰填谷", "分时电价驱动负荷优化", "评估需求响应对电网的影响"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.2, "min": 0.9, "max": 1.6, "description": "基础负荷倍率。"},
+    "price_elasticity": {"default": 0.15, "min": 0.05, "max": 0.3, "description": "负荷需求价格弹性系数。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["商业区节点", "居民区节点", "柔性负荷节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b14", "b24", "b30"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_flexible_load_ratio": {"default": 0.15, "min": 0.05, "max": 0.3, "description": "最大可调节柔性负荷比例。"}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["PPO", "SAC", "DQN"],
+    "default_algorithm": "PPO",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["peak_shaving", "line_loss_penalty", "voltage_violation_penalty", "curtailment_penalty"]
+  },
+  "recommended_metrics": ["日峰谷差", "最大负荷峰值", "精确总网损", "电压合格率", "总运行成本", "用户满意度损失"],
+  "validation_rules": [
+    {
+      "rule_id": "FLEXIBLE_LOAD_RATIO_UPPER_BOUND",
+      "level": "warning",
+      "condition": "max_flexible_load_ratio > 0.3",
+      "message_cn": "配置的柔性负荷可调比例过大（超过30%），在工程实践中难以实现，请确认是否符合预期。"
+    },
+    {
+      "rule_id": "TARIFF_FLAT_WARNING",
+      "level": "reject",
+      "condition": "is_tariff_flat == true",
+      "message_cn": "当前场景为分时电价驱动的需求侧响应场景，但配置了单一电价（扁平电价），与场景语义冲突。"
+    }
+  ],
+  "result_interpretation_focus": [
+    "分析高低电价时段负荷的平移规律，判断需求侧响应是否实现了有效的削峰填谷效果。",
+    "评估购电成本与总网损的下降百分比，衡量系统的整体调控效益。",
+    "观测尖峰时段的电压合格率是否因为负荷削减而得到明显改善。"
+  ]
+}

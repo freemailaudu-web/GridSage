@@ -1,0 +1,42 @@
+{
+  "skill_id": "S01_HIGH_PV_LOW_LOAD",
+  "version": "1.0.0",
+  "name_cn": "光伏大发低负荷场景",
+  "name_en": "High PV Generation with Low Load Scenario",
+  "category": "renewable_integration",
+  "description_cn": "模拟中午分布式光伏高出力、系统负荷较低时可能引发的过电压、反向潮流和弃光问题。",
+  "description_en": "Simulates high distributed PV generation under low demand.",
+  "intent_triggers": ["光伏大发", "高光伏", "中午光伏过剩", "弃光", "过电压", "低负荷高光伏", "反向潮流", "PV overgeneration", "high PV", "solar overgeneration"],
+  "typical_user_requests": ["创建一个光伏大发场景", "我想模拟中午光伏过剩", "把光伏提高到2倍，负荷降低到70%", "训练一个模型消纳光伏"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 2.0, "min": 1.3, "max": 2.5, "description": "光伏出力倍率。"},
+    "global_load_multiplier": {"default": 0.7, "min": 0.5, "max": 1.0, "description": "基础负荷倍率。"},
+    "global_ev_multiplier": {"default": 0.0, "min": 0.0, "max": 0.0, "description": "默认不引入 EV 充电需求，除非用户明确要求。"},
+    "start_hour": {"default": 10, "min": 8, "max": 12},
+    "end_hour": {"default": 15, "min": 13, "max": 17}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["末端节点", "已有光伏节点", "电压敏感节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b22", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_pv_kw": {"default": 300, "min": 50, "max": 1000},
+      "add_ess_kwh": {"default": 200, "min": 0, "max": 2000}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_violation_penalty", "pv_curtailment_penalty", "line_loss_penalty", "ev_soc_satisfaction"]
+  },
+  "recommended_metrics": ["电压合格率", "最大电压偏差", "光伏风电消纳率", "弃光弃风量", "精确总网损", "EV充电满足率", "总成本"],
+  "validation_rules": [
+    {"rule_id": "PV_MULTIPLIER_SHOULD_BE_HIGH", "level": "warning", "condition": "effective_pv_multiplier < 1.3", "message_cn": "当前配置被识别为光伏大发场景，但全局或分时光伏倍率均低于1.3，可能无法体现光伏大发特征。"},
+    {"rule_id": "LOAD_SHOULD_NOT_BE_TOO_HIGH", "level": "warning", "condition": "global_load_multiplier > 1.2", "message_cn": "光伏大发低负荷场景中负荷倍率过高，可能削弱低负荷高光伏特征。"},
+    {"rule_id": "PV_MULTIPLIER_UPPER_BOUND", "level": "reject", "condition": "global_pv_multiplier > 3.0", "message_cn": "光伏倍率过高，可能导致明显不合理的电压越限或潮流不可行。"},
+    {"rule_id": "PV_MUST_BE_ENABLED", "level": "reject", "condition": "use_pv == false", "message_cn": "光伏大发场景下关闭光伏会使场景含义失效，当前配置与场景语义冲突。"},
+    {"rule_id": "MIDDAY_WINDOW_EXPECTED", "level": "warning", "condition": "not midday_window_overlap", "message_cn": "光伏大发低负荷场景通常应覆盖午间光伏高出力时段，当前时间窗口可能不符合场景语义。"},
+    {"rule_id": "HIGH_PV_NEEDS_FLEX_SUPPORT", "level": "warning", "condition": "effective_pv_multiplier >= 2.5 and use_ess == false and use_sop == false", "message_cn": "高光伏压力场景中同时关闭储能和SOP，缺少吸纳或电压调节资源，运行风险较高。"}
+  ],
+  "result_interpretation_focus": ["若电压合格率下降，说明高光伏导致过电压风险。", "若弃光弃风量下降，说明调控策略提高了本地可再生能源消纳能力。", "若 EV 充电满足率明显下降，说明策略可能过度服务电网侧目标。"]
+}

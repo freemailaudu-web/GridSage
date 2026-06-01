@@ -1,0 +1,49 @@
+{
+  "skill_id": "S04_SOP_VOLTAGE_CONTROL",
+  "version": "1.0.0",
+  "name_cn": "柔性开关调控与主动电压控制场景",
+  "name_en": "SOP-based Active Voltage Control Scenario",
+  "category": "voltage_control",
+  "description_cn": "针对含高比例分布式新能源或动态负荷的配电网，利用智能软开关 (SOP) 的主动无功支撑与有功转供能力，解决馈线末端电压越限与有功负载不均衡问题。",
+  "description_en": "Simulates dynamic active and reactive power control by Soft Open Points (SOP) to mitigate voltage violation and imbalance.",
+  "intent_triggers": ["SOP调控", "智能软开关", "主动电压控制", "柔性互联", "有功转供", "无功电压支撑", "SOP active voltage control", "soft open point"],
+  "typical_user_requests": ["启用智能软开关控制", "模拟SOP有功无功调节", "末端电压越限SOP调控场景", "SOP主动电压控制机制研究"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 1.8, "min": 1.0, "max": 2.5, "description": "光伏出力倍率。"},
+    "global_load_multiplier": {"default": 1.2, "min": 0.8, "max": 1.6, "description": "基础负荷倍率。"},
+    "use_sop": {"default": true, "description": "是否开启SOP，该场景推荐开启。"}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["联络线节点", "末端节点", "电压敏感节点"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b33", "b22", "b25"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_sop_capacity_kva": {"default": 500, "min": 100, "max": 2000, "description": "配置SOP额定容量。"}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_violation_penalty", "line_loss_penalty", "sop_loss_penalty", "load_imbalance_penalty"]
+  },
+  "recommended_metrics": ["电压合格率", "最大电压偏差", "精确总网损", "SOP传输功率", "有功功率均衡度", "运行总成本"],
+  "validation_rules": [
+    {
+      "rule_id": "SOP_MUST_BE_ENABLED",
+      "level": "reject",
+      "condition": "use_sop == false",
+      "message_cn": "柔性开关调控场景下必须开启SOP调控功能，当前配置与场景语义冲突。"
+    },
+    {
+      "rule_id": "SOP_CAPACITY_LIMIT",
+      "level": "warning",
+      "condition": "max_sop_capacity_kva > 1500",
+      "message_cn": "当前配置的SOP容量过大（超出1500 kVA），请确保这与您所选的测试网架容量等级相匹配。"
+    }
+  ],
+  "result_interpretation_focus": [
+    "观察SOP在负荷高峰与光伏大发时段的有功与无功出力曲线，验证其对系统潮流的双向平衡作用。",
+    "评估SOP对末端节点最低与最高电压的提升幅度，分析电压越限得到缓解的程度。",
+    "对比SOP开启前后精确总网损的变化，分析有功转供对线损的优化效能。"
+  ]
+}
