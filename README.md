@@ -188,26 +188,6 @@ cd frontend
 npm run dev
 ```
 
-## Notes for Open Source Use
-
-Before publishing this project to GitHub, it is recommended to remove generated cache, logs, build artifacts, and local environment files.
-
-Recommended files and folders to exclude:
-
-```text
-__pycache__/
-*.pyc
-.pytest_cache/
-backend/logs/
-frontend/dist/
-frontend/node_modules/
-.venv/
-.env
-.env.*
-```
-
-These files are not required for source code release and may contain local runtime information.
-
 ## Research Purpose
 
 GridSage is currently a research-oriented prototype. It is suitable for studying:
