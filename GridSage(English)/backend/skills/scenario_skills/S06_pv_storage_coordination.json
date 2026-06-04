@@ -1,0 +1,49 @@
+{
+  "skill_id": "S06_PV_STORAGE_COORDINATION",
+  "version": "1.0.0",
+  "name_cn": "High PV with Distributed Energy Storage Coordination Scenario",
+  "name_en": "High PV with Distributed Energy Storage Coordination Scenario",
+  "category": "storage_coordination",
+  "description_cn": "Coordinates multi-node distributed energy storage systems to absorb high PV generation, support peak demand, balance local generation and load, and mitigate reverse flow and overvoltage.",
+  "description_en": "Simulates coordinated scheduling of multi-node BESS to absorb high PV generation and support grid during peak load.",
+  "intent_triggers": ["PV storage coordination", "PV storage absorption", "distributed storage coordination", "distributed PV storage", "storage absorption of PV", "generation-load coordination", "BESS PV absorption"],
+  "typical_user_requests": ["Simulate high-PV storage coordination", "Add multi-node distributed energy storage", "Use storage charging to absorb high PV output", "Evaluate coordinated PV-storage control"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 2.0, "min": 1.4, "max": 2.8, "description": "Global distributed PV output multiplier."},
+    "global_load_multiplier": {"default": 0.85, "min": 0.6, "max": 1.2, "description": "Base load multiplier."},
+    "use_ess": {"default": true, "description": "Whether distributed energy storage is enabled; it is required for this scenario."}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["PV nodes", "voltage-sensitive feeder-end nodes", "energy-storage interconnection nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b22", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_ess_kwh": {"default": 300, "min": 50, "max": 1500, "description": "Added distributed energy storage rated capacity."}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["pv_curtailment_penalty", "voltage_violation_penalty", "line_loss_penalty", "ess_soc_balance"]
+  },
+  "recommended_metrics": ["Renewable Energy Absorption Rate", "Renewable Energy Curtailment", "Minimum and Maximum Voltage", "Voltage Compliance Rate", "Exact Total Grid Loss", "ESS Utilization Efficiency"],
+  "validation_rules": [
+    {
+      "rule_id": "ESS_MUST_BE_ENABLED",
+      "level": "reject",
+      "condition": "use_ess == false",
+      "message_cn": "Energy storage must be enabled for a coordinated PV-storage absorption scenario; the current configuration conflicts with the scenario semantics."
+    },
+    {
+      "rule_id": "PV_CAPACITY_INSUFFICIENT",
+      "level": "warning",
+      "condition": "global_pv_multiplier < 1.3 and total_add_pv_kw <= 0",
+      "message_cn": "The PV multiplier is low for a high-PV absorption scenario and may not fully demonstrate PV-storage absorption or voltage-violation control effects."
+    }
+  ],
+  "result_interpretation_focus": [
+    "Inspect energy-storage charging and discharging from 10:00 to 14:00 to evaluate peak-shaving and PV-absorption effectiveness.",
+    "Analyze voltage improvements at feeder-end violation points to confirm overvoltage mitigation from PV-storage coordination.",
+    "Measure curtailment and net-load variability to determine whether the control strategy achieves local generation-load balance."
+  ]
+}

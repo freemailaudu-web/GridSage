@@ -1,0 +1,48 @@
+{
+  "skill_id": "S07_DYNAMIC_LOAD_VOLTAGE_SUPPORT",
+  "version": "1.0.0",
+  "name_cn": "Dynamic Terminal Load with Active Reactive Power Support Scenario",
+  "name_en": "Dynamic Terminal Load with Active Reactive Power Support Scenario",
+  "category": "voltage_quality",
+  "description_cn": "Simulates transient voltage sag and power-quality degradation caused by high-power dynamic loads at feeder ends, coordinating reactive compensation devices for fast voltage support.",
+  "description_en": "Simulates transient voltage sag caused by dynamic peak loads, and schedules reactive power support from SVG or SOP.",
+  "intent_triggers": ["dynamic load", "impact load", "reactive power support", "reactive compensation", "voltage sag", "power quality", "SVG reactive power", "dynamic load sag"],
+  "typical_user_requests": ["Simulate an impact load at feeder ends", "Provide SVG reactive support under impact load", "Control voltage sag caused by dynamic load", "Create a dynamic reactive-voltage-control scenario"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.1, "min": 0.8, "max": 1.5, "description": "Base load multiplier."},
+    "dynamic_load_peak_kw": {"default": 600.0, "min": 200.0, "max": 1500.0, "description": "Dynamic-load peak power."}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["feeder-end nodes", "heavy-load nodes", "reactive-power-control nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_svg_kvar": {"default": 300, "min": 50, "max": 1000, "description": "Added reactive-power-control capacity of the static var generator (SVG)."}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["TD3", "SAC", "PPO"],
+    "default_algorithm": "TD3",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_sag_penalty", "reactive_loss_penalty", "line_loss_penalty", "voltage_deviation_penalty"]
+  },
+  "recommended_metrics": ["Minimum Transient Voltage", "Voltage Sag Magnitude", "Voltage Compliance Rate", "Exact Total Grid Loss", "SVG Dynamic Response Speed"],
+  "validation_rules": [
+    {
+      "rule_id": "DYNAMIC_LOAD_PEAK_LIMIT",
+      "level": "reject",
+      "condition": "dynamic_load_peak_kw > 2000",
+      "message_cn": "The configured dynamic impact-load peak exceeds 2000 kW and is outside the normal safety range. Use a reasonable value."
+    },
+    {
+      "rule_id": "REACTIVE_SUPPORT_MISSING",
+      "level": "warning",
+      "condition": "use_svg == false and use_sop == false and use_ess == false",
+      "message_cn": "All fast reactive-response devices (SVG, SOP, and energy storage) are disabled in a dynamic-load support scenario, creating severe transient-violation risk."
+    }
+  ],
+  "result_interpretation_focus": [
+    "Evaluate whether reactive compensation devices provide fast millisecond-scale or step-scale reactive power support during dynamic-load impacts.",
+    "Compare feeder-end minimum voltage before and after reactive-support actions.",
+    "Calculate additional grid loss caused by dynamic reactive power flow to assess side effects of reactive compensation."
+  ]
+}

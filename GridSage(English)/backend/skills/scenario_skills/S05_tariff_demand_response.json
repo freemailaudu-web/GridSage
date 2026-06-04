@@ -1,0 +1,48 @@
+{
+  "skill_id": "S05_TARIFF_DEMAND_RESPONSE",
+  "version": "1.0.0",
+  "name_cn": "TOU Tariff-driven Demand Side Response Scenario",
+  "name_en": "TOU Tariff-driven Demand Side Response Scenario",
+  "category": "demand_response",
+  "description_cn": "Uses time-of-use tariff signals to guide flexible user loads for active peak shaving and valley filling, smoothing net load while reducing losses and improving operating economics.",
+  "description_en": "Simulates responsive flexible loads shifting demand according to Time-of-Use tariff to achieve peak shaving and optimization.",
+  "intent_triggers": ["time-of-use tariff", "demand side response", "peak shaving and valley filling", "demand response", "flexible load", "load shifting", "TOU tariff"],
+  "typical_user_requests": ["Simulate TOU-tariff demand response", "Add flexible loads for peak shaving", "Optimize load using TOU tariffs", "Evaluate demand response impacts on the grid"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.2, "min": 0.9, "max": 1.6, "description": "Base load multiplier."},
+    "price_elasticity": {"default": 0.15, "min": 0.05, "max": 0.3, "description": "Price elasticity coefficient of load demand."}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["commercial-area nodes", "residential-area nodes", "flexible-load nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b14", "b24", "b30"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_flexible_load_ratio": {"default": 0.15, "min": 0.05, "max": 0.3, "description": "Maximum adjustable flexible-load ratio."}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["PPO", "SAC", "DQN"],
+    "default_algorithm": "PPO",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["peak_shaving", "line_loss_penalty", "voltage_violation_penalty", "curtailment_penalty"]
+  },
+  "recommended_metrics": ["Daily Peak-Valley Difference", "Maximum Load Peak", "Exact Total Grid Loss", "Voltage Compliance Rate", "Total Operating Cost", "User Satisfaction Loss"],
+  "validation_rules": [
+    {
+      "rule_id": "FLEXIBLE_LOAD_RATIO_UPPER_BOUND",
+      "level": "warning",
+      "condition": "max_flexible_load_ratio > 0.3",
+      "message_cn": "The configured adjustable flexible-load ratio exceeds 30%, which is difficult to achieve in engineering practice. Confirm that this is intended."
+    },
+    {
+      "rule_id": "TARIFF_FLAT_WARNING",
+      "level": "reject",
+      "condition": "is_tariff_flat == true",
+      "message_cn": "A flat tariff conflicts with the semantics of a TOU-tariff-driven demand response scenario."
+    }
+  ],
+  "result_interpretation_focus": [
+    "Analyze load shifting between high- and low-price periods to determine whether demand response achieves effective peak shaving and valley filling.",
+    "Evaluate reductions in electricity purchase cost and total grid loss to measure overall control benefits.",
+    "Observe whether voltage compliance improves during peak periods due to load reduction."
+  ]
+}

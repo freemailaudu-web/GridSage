@@ -1,0 +1,42 @@
+{
+  "skill_id": "S01_HIGH_PV_LOW_LOAD",
+  "version": "1.0.0",
+  "name_cn": "High PV Generation with Low Load Scenario",
+  "name_en": "High PV Generation with Low Load Scenario",
+  "category": "renewable_integration",
+  "description_cn": "Simulates overvoltage, reverse power flow, and renewable curtailment caused by high distributed PV output and low system demand around midday.",
+  "description_en": "Simulates high distributed PV generation under low demand.",
+  "intent_triggers": ["PV overgeneration", "high PV", "midday PV surplus", "renewable curtailment", "overvoltage", "low load high PV", "reverse power flow", "solar overgeneration"],
+  "typical_user_requests": ["Create a high-PV scenario", "Simulate midday PV surplus", "Increase PV to 2x and reduce load to 70%", "Train a model to absorb PV generation"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 2.0, "min": 1.3, "max": 2.5, "description": "PV output multiplier."},
+    "global_load_multiplier": {"default": 0.7, "min": 0.5, "max": 1.0, "description": "Base load multiplier."},
+    "global_ev_multiplier": {"default": 0.0, "min": 0.0, "max": 0.0, "description": "Do not introduce EV charging demand unless explicitly requested."},
+    "start_hour": {"default": 10, "min": 8, "max": 12},
+    "end_hour": {"default": 15, "min": 13, "max": 17}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["feeder-end nodes", "nodes with existing PV", "voltage-sensitive nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b22", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_pv_kw": {"default": 300, "min": 50, "max": 1000},
+      "add_ess_kwh": {"default": 200, "min": 0, "max": 2000}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_violation_penalty", "pv_curtailment_penalty", "line_loss_penalty", "ev_soc_satisfaction"]
+  },
+  "recommended_metrics": ["Voltage Compliance Rate", "Maximum Voltage Deviation", "Renewable Energy Absorption Rate", "Renewable Energy Curtailment", "Exact Total Grid Loss", "EV Charging Satisfaction Rate", "Total Cost"],
+  "validation_rules": [
+    {"rule_id": "PV_MULTIPLIER_SHOULD_BE_HIGH", "level": "warning", "condition": "effective_pv_multiplier < 1.3", "message_cn": "This is a high-PV scenario, but both global and time-varying PV multipliers are below 1.3, so the intended characteristics may not be visible."},
+    {"rule_id": "LOAD_SHOULD_NOT_BE_TOO_HIGH", "level": "warning", "condition": "global_load_multiplier > 1.2", "message_cn": "The load multiplier is too high for a high-PV low-load scenario and may weaken the intended characteristics."},
+    {"rule_id": "PV_MULTIPLIER_UPPER_BOUND", "level": "reject", "condition": "global_pv_multiplier > 3.0", "message_cn": "The PV multiplier is excessively high and may cause unrealistic voltage violations or infeasible power flow."},
+    {"rule_id": "PV_MUST_BE_ENABLED", "level": "reject", "condition": "use_pv == false", "message_cn": "PV must remain enabled in a high-PV scenario; the current configuration conflicts with the scenario semantics."},
+    {"rule_id": "MIDDAY_WINDOW_EXPECTED", "level": "warning", "condition": "not midday_window_overlap", "message_cn": "A high-PV low-load scenario should normally cover the midday high-output period; the current time window may not match the scenario semantics."},
+    {"rule_id": "HIGH_PV_NEEDS_FLEX_SUPPORT", "level": "warning", "condition": "effective_pv_multiplier >= 2.5 and use_ess == false and use_sop == false", "message_cn": "Both ESS and SOP are disabled under high PV stress, leaving insufficient absorption or voltage-regulation resources and increasing operational risk."}
+  ],
+  "result_interpretation_focus": ["A lower voltage compliance rate indicates overvoltage risk caused by high PV output.", "Lower renewable curtailment indicates that the control strategy improves local renewable energy absorption.", "A significant drop in EV charging satisfaction may indicate that the strategy over-prioritizes grid-side objectives."]
+}

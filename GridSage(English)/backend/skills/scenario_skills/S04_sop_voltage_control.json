@@ -1,0 +1,49 @@
+{
+  "skill_id": "S04_SOP_VOLTAGE_CONTROL",
+  "version": "1.0.0",
+  "name_cn": "SOP-based Active Voltage Control Scenario",
+  "name_en": "SOP-based Active Voltage Control Scenario",
+  "category": "voltage_control",
+  "description_cn": "Uses Soft Open Point active reactive-power support and active-power transfer to mitigate feeder-end voltage violations and active-load imbalance in grids with high distributed renewable penetration or dynamic loads.",
+  "description_en": "Simulates dynamic active and reactive power control by Soft Open Points (SOP) to mitigate voltage violation and imbalance.",
+  "intent_triggers": ["SOP control", "soft open point", "active voltage control", "flexible interconnection", "active power transfer", "reactive voltage support", "SOP active voltage control"],
+  "typical_user_requests": ["Enable soft open point control", "Simulate SOP active and reactive power regulation", "Create an SOP control scenario for feeder-end voltage violations", "Study SOP active voltage control"],
+  "recommended_parameters": {
+    "global_pv_multiplier": {"default": 1.8, "min": 1.0, "max": 2.5, "description": "PV output multiplier."},
+    "global_load_multiplier": {"default": 1.2, "min": 0.8, "max": 1.6, "description": "Base load multiplier."},
+    "use_sop": {"default": true, "description": "Whether SOP is enabled; enabling it is recommended for this scenario."}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["tie-line nodes", "feeder-end nodes", "voltage-sensitive nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b33", "b22", "b25"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_sop_capacity_kva": {"default": 500, "min": 100, "max": 2000, "description": "Configured SOP rated capacity."}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["SAC", "TD3", "PPO"],
+    "default_algorithm": "SAC",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_violation_penalty", "line_loss_penalty", "sop_loss_penalty", "load_imbalance_penalty"]
+  },
+  "recommended_metrics": ["Voltage Compliance Rate", "Maximum Voltage Deviation", "Exact Total Grid Loss", "SOP Transfer Power", "Active Power Balance Index", "Total Operating Cost"],
+  "validation_rules": [
+    {
+      "rule_id": "SOP_MUST_BE_ENABLED",
+      "level": "reject",
+      "condition": "use_sop == false",
+      "message_cn": "SOP control must be enabled for this scenario; the current configuration conflicts with the scenario semantics."
+    },
+    {
+      "rule_id": "SOP_CAPACITY_LIMIT",
+      "level": "warning",
+      "condition": "max_sop_capacity_kva > 1500",
+      "message_cn": "The configured SOP capacity exceeds 1500 kVA. Confirm that it matches the capacity level of the selected test grid."
+    }
+  ],
+  "result_interpretation_focus": [
+    "Inspect SOP active and reactive power output during peak load and high PV periods to verify bidirectional power-flow balancing.",
+    "Evaluate improvements in minimum and maximum feeder-end voltage and the degree of voltage-violation mitigation.",
+    "Compare exact total grid loss before and after enabling SOP to assess the effect of active-power transfer on line losses."
+  ]
+}

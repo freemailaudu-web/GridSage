@@ -1,0 +1,41 @@
+{
+  "skill_id": "S02_HEAVY_LOAD_END_NODES",
+  "version": "1.0.0",
+  "name_cn": "Heavy Load at Feeder End Nodes",
+  "name_en": "Heavy Load at Feeder End Nodes",
+  "category": "load_stress",
+  "description_cn": "Simulates low voltage, increased line power flow, and higher grid losses caused by heavy loads at feeder-end nodes.",
+  "description_en": "Simulates voltage and loss stress caused by heavy load at feeder end nodes.",
+  "intent_triggers": ["feeder-end heavy load", "feeder-end node", "heavy load", "very heavy load", "low voltage", "line overload", "end node"],
+  "typical_user_requests": ["Apply heavy load at feeder-end nodes", "Simulate low voltage at feeder ends", "Add load to feeder-end nodes"],
+  "recommended_parameters": {
+    "global_load_multiplier": {"default": 1.5, "min": 1.2, "max": 1.8},
+    "global_pv_multiplier": {"default": 1.0, "min": 0.8, "max": 1.2},
+    "global_ev_multiplier": {"default": 0.0, "min": 0.0, "max": 0.0, "description": "Do not introduce EV charging demand unless explicitly requested."}
+  },
+  "recommended_node_rules": {
+    "preferred_node_types": ["feeder-end nodes", "low-voltage nodes"],
+    "preferred_nodes_by_grid": {"ieee33": ["b18", "b25", "b33"], "ieee69": [], "ieee123": []},
+    "allowed_node_actions": {
+      "add_load_kw": {"default": 300, "min": 100, "max": 1500},
+      "add_ev_spots": {"default": 20, "min": 0, "max": 50}
+    }
+  },
+  "recommended_rl": {
+    "algorithms": ["PPO", "SAC", "TD3"],
+    "default_algorithm": "PPO",
+    "suggested_total_timesteps": {"quick_demo": 1000, "normal": 10000, "paper_experiment": 50000},
+    "reward_terms": ["voltage_support", "peak_shaving", "line_loss_penalty", "line_overload_penalty"]
+  },
+  "recommended_metrics": ["Minimum Node Voltage", "Voltage Compliance Rate", "Maximum Line Power Flow", "Exact Total Grid Loss", "Total Cost", "EV Charging Satisfaction Rate"],
+  "validation_rules": [
+    {"rule_id": "LOAD_SHOULD_BE_HIGH", "level": "warning", "condition": "global_load_multiplier <= 1.0 and total_add_load_kw <= 0", "message_cn": "Neither global load nor node load was increased, so the feeder-end heavy-load characteristics may not be visible."},
+    {"rule_id": "HEAVY_LOAD_SEMANTIC_CONFLICT", "level": "reject", "condition": "global_load_multiplier < 0.8 and total_add_load_kw <= 0", "message_cn": "The global load is reduced without adding node load, which conflicts with the heavy-load scenario semantics."},
+    {"rule_id": "LOAD_SHOULD_TARGET_END_NODES", "level": "warning", "condition": "has_known_end_nodes and total_add_load_kw > 0 and end_node_add_load_kw <= 0", "message_cn": "The added load does not target recommended feeder-end nodes and may weaken the intended low-voltage stress."},
+    {"rule_id": "NODE_LOAD_TOO_HIGH", "level": "warning", "condition": "max_add_load_kw > 1500", "message_cn": "Added load at a single node exceeds 1500 kW. Confirm that this matches the engineering setup."},
+    {"rule_id": "NODE_LOAD_HARD_LIMIT", "level": "reject", "condition": "max_add_load_kw > 2000", "message_cn": "Added load at a single node exceeds 2000 kW and is outside the current safety boundary."},
+    {"rule_id": "HEAVY_LOAD_NEEDS_VOLTAGE_SUPPORT", "level": "warning", "condition": "effective_load_multiplier >= 2.0 and use_ess == false and use_sop == false", "message_cn": "ESS and SOP are both disabled under high load stress, leaving insufficient voltage-support resources and increasing operational risk."},
+    {"rule_id": "EV_HEAVY_LOAD_STACKING_RISK", "level": "warning", "condition": "effective_load_multiplier >= 1.8 and effective_ev_multiplier >= 3.0 and end_node_add_load_kw >= 500", "message_cn": "Concentrated EV charging combined with feeder-end heavy load may further increase low-voltage and line-flow risk."}
+  ],
+  "result_interpretation_focus": ["Focus on whether the minimum feeder-end voltage improves.", "Higher grid loss indicates line-flow stress caused by heavy loading.", "Lower maximum line power flow indicates that the control strategy relieves local flow stress."]
+}

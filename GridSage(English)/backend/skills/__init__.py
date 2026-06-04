@@ -1,0 +1,1 @@
+"""Scenario skill assets."""
