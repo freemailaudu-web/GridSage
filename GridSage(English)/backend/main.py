@@ -1,5 +1,6 @@
 import importlib.metadata
 import math
+import os
 import sys
 import uuid
 from typing import List
@@ -54,6 +55,54 @@ def _json_safe(value):
     if isinstance(value, float):
         return value if math.isfinite(value) else None
     return value
+
+
+def _package_version(name: str):
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _solver_health(solver_name: str = "gurobi") -> dict:
+    solver_name = str(solver_name or "gurobi")
+    info = {
+        "configured": solver_name,
+        "pyomo_available": False,
+        "python_binding_importable": None,
+        "python_binding_version": None,
+        "full_baseline_ready": False,
+        "error": None,
+    }
+    try:
+        from pyomo.environ import SolverFactory
+
+        solver = SolverFactory(solver_name)
+        info["pyomo_available"] = bool(solver.available(False))
+    except Exception as exc:
+        info["error"] = f"Pyomo solver check failed: {exc}"
+
+    if solver_name.lower() == "gurobi":
+        try:
+            import gurobipy as gp
+
+            info["python_binding_importable"] = True
+            try:
+                info["python_binding_version"] = ".".join(str(part) for part in gp.gurobi.version())
+            except Exception:
+                info["python_binding_version"] = _package_version("gurobipy")
+        except Exception as exc:
+            info["python_binding_importable"] = False
+            info["error"] = f"Gurobi Python binding check failed: {exc}"
+    else:
+        info["python_binding_importable"] = None
+
+    info["full_baseline_ready"] = bool(
+        info["pyomo_available"]
+        and (solver_name.lower() != "gurobi" or info["python_binding_importable"])
+    )
+    return info
+
 
 sessions = {}
 task_states = {}
@@ -391,6 +440,9 @@ async def get_grid_snapshot(session_id: str):
 async def health():
     packages = {}
     for name in [
+        "fastapi",
+        "uvicorn",
+        "pydantic",
         "openpyxl",
         "matplotlib",
         "gymnasium",
@@ -403,15 +455,24 @@ async def health():
         "tensorboard",
         "rich",
     ]:
-        try:
-            packages[name] = importlib.metadata.version(name)
-        except importlib.metadata.PackageNotFoundError:
-            packages[name] = None
+        packages[name] = _package_version(name)
+    solver = _solver_health(os.getenv("GRIDSAGE_SOLVER", ScenarioConfig().solver))
+    warnings = []
+    if not solver["full_baseline_ready"]:
+        warnings.append(
+            "Full baseline optimization is not ready. Scenario configuration, validation, grid snapshot, and UI can still work."
+        )
     return {
         "status": "ok",
+        "python": {
+            "executable": sys.executable,
+            "version": sys.version,
+        },
         "python_executable": sys.executable,
         "python_version": sys.version,
         "packages": packages,
+        "solver": solver,
+        "warnings": warnings,
     }
 
 
