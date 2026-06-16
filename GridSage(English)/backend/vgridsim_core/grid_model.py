@@ -26,6 +26,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 #GRID_PARAMS_FILE = os.path.join(BASE_DIR, 'data', 'grid_parameters.xlsx')
 
 
+def _seg_func_from_series(time_points_sec, values):
+    """Build SegFunc across feasytools versions with different constructor behavior."""
+    times = [int(t) for t in time_points_sec]
+    data = [float(v) for v in values]
+    try:
+        return SegFunc(times, data)
+    except TypeError:
+        return SegFunc(list(zip(times, data)), data)
+
+
 def generate_stochastic_power_profile(predicted_profile, error_level=0.08):
     """
     Generate a random actual power curve based on the predicted power curve and error level.
@@ -391,7 +401,7 @@ def load_bus_loads(grid, gui_params):
             final_pd_slice = full_day_interpolated_pd[start_step_index:end_step_index]
             # Use fpowerkit's SegFunc (segmented function) to represent this timing load
             time_points_sec = [int(i * timestep_seconds) for i in range(len(final_pd_slice))]
-            bus.Pd = SegFunc(time_points_sec, list(final_pd_slice))
+            bus.Pd = _seg_func_from_series(time_points_sec, final_pd_slice)
 
             # --- Handle reactive load Qd (logic same as above) ---
             hourly_qd = [row[f"Qd_t{t}"] if f"Qd_t{t}" in row and pd.notna(row[f"Qd_t{t}"]) else 0.0 for t in range(24)]
@@ -400,7 +410,7 @@ def load_bus_loads(grid, gui_params):
                                                                          error_level=0.05) # Assume 5% error
             final_qd_slice = full_day_interpolated_qd[start_step_index:end_step_index]
             time_points_sec_q = [int(i * timestep_seconds) for i in range(len(final_qd_slice))]
-            bus.Qd = SegFunc(time_points_sec_q, list(final_qd_slice))
+            bus.Qd = _seg_func_from_series(time_points_sec_q, final_qd_slice)
 
             overwrite_success = True
 
@@ -461,7 +471,7 @@ def load_distributed_energy(grid, gui_params):
 
                     # Finally, use this actual output curve with randomness to create fpowerkit’s piecewise function
                     time_points_sec = [int(i * timestep_seconds) for i in range(len(actual_p_profile))]
-                    p_func = SegFunc(time_points_sec, list(actual_p_profile))
+                    p_func = _seg_func_from_series(time_points_sec, actual_p_profile)
 
                     pvw = PVWind(
                         pvw_id,
