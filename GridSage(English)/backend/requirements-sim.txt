@@ -1,0 +1,5 @@
+scipy>=1.10.0
+pyomo>=6.6.0
+gymnasium>=0.29.1,<1.3.0
+feasytools>=0.1.4
+py-dss-interface>=2.0.0
